@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata: { name: hls-transcoder, namespace: ott-platform, labels: { app: hls-transcoder } }
+spec:
+  containers:
+  - name: ffmpeg
+    image: jrottenberg/ffmpeg:4.4-alpine
+    command: ["/bin/sh","-c"]
+    args:
+      - >-
+        ffmpeg -re -f lavfi -i testsrc=size=1280x720:rate=30 -f lavfi -i sine=frequency=440:sample_rate=48000
+        -c:v libx264 -preset veryfast -c:a aac -f hls -hls_time 4 -hls_list_size 5
+        -hls_flags delete_segments -hls_segment_filename /hls/segment%03d.ts /hls/master.m3u8
+    volumeMounts: [ { name: hls-media, mountPath: /hls } ]
+  - name: nginx
+    image: nginx:1.25-alpine
+    ports: [ { containerPort: 80 } ]
+    volumeMounts: [ { name: hls-media, mountPath: /usr/share/nginx/html/media/demo } ]
+  volumes:
+  - { name: hls-media, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: hls-transcoder-service, namespace: ott-platform }
+spec:
+  selector: { app: hls-transcoder }
+  ports: [ { name: http, port: 80, targetPort: 80 } ]

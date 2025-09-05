@@ -10,8 +10,17 @@ spec:
       containers:
       - name: auth
         image: python:3.11-slim
-        command: ["python","/app/app.py"]
+        command: ["/bin/sh", "-c"]
+        args: ["pip install flask pyjwt prometheus_flask_exporter && python /app/app.py"]
         ports: [ { containerPort: 5000 } ]
+        readinessProbe:
+          httpGet: { path: /health, port: 5000 }
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: { path: /health, port: 5000 }
+          initialDelaySeconds: 15
+          periodSeconds: 10
         volumeMounts: [ { name: code, mountPath: /app } ]
       volumes: [ { name: code, configMap: { name: auth-api-code } } ]
 ---
@@ -29,7 +38,8 @@ data:
   app.py: |
     from flask import Flask, request, jsonify
     import jwt, datetime
-    app = Flask(__name__); SECRET="super-secret-key"
+    from prometheus_flask_exporter import PrometheusMetrics
+    app = Flask(__name__); SECRET="super-secret-key"; metrics = PrometheusMetrics(app)
     @app.get("/health")
     def h(): return ("ok",200)
     @app.post("/auth/login")

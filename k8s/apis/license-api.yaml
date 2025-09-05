@@ -10,8 +10,17 @@ spec:
       containers:
       - name: license
         image: python:3.11-slim
-        command: ["python","/app/app.py"]
+        command: ["/bin/sh", "-c"]
+        args: ["pip install flask pyjwt prometheus_flask_exporter && python /app/app.py"]
         ports: [ { containerPort: 5003 } ]
+        readinessProbe:
+          httpGet: { path: /health, port: 5003 }
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: { path: /health, port: 5003 }
+          initialDelaySeconds: 15
+          periodSeconds: 10
         volumeMounts: [ { name: code, mountPath: /app } ]
       volumes: [ { name: code, configMap: { name: license-api-code } } ]
 ---
@@ -28,7 +37,8 @@ metadata: { name: license-api-code, namespace: ott-platform }
 data:
   app.py: |
     from flask import Flask, request, jsonify
-    app = Flask(__name__)
+    from prometheus_flask_exporter import PrometheusMetrics
+    app = Flask(__name__); metrics = PrometheusMetrics(app)
     @app.get("/health")
     def h(): return ("ok",200)
     @app.get("/ready")

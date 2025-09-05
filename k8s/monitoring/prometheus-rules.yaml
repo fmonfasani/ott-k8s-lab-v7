@@ -3,17 +3,9 @@ kind: PrometheusRule
 metadata: { name: ott-alerts, namespace: ott-platform }
 spec:
   groups:
-  - name: apis
+  - name: availability
     rules:
-    - alert: HighAPILatency
-      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 0.3
-      for: 2m
-      labels: { severity: warning }
-      annotations: { summary: "API latencia P95 alta", description: "P95 > 300ms por 2m" }
-  - name: drm
-    rules:
-    - alert: LicenseAPIDown
-      expr: up{job="license-api-service"} == 0
-      for: 30s
+    - alert: ServiceDown
+      expr: up == 0
+      for: 1m
       labels: { severity: critical }
-      annotations: { summary: "License API caído", description: "Servidor de licencias no responde" }

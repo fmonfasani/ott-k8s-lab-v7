@@ -3,7 +3,35 @@ kind: ServiceMonitor
 metadata: { name: api-auth-monitor, namespace: ott-platform }
 spec:
   selector: { matchLabels: { app: auth-api } }
-  endpoints: [ { port: http, path: /health, interval: 15s } ]
+  endpoints: [ { port: http, path: /metrics, interval: 15s } ]
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata: { name: api-subscription-monitor, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: subscription-api } }
+  endpoints: [ { port: http, path: /metrics, interval: 15s } ]
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata: { name: api-catalog-monitor, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: catalog-api } }
+  endpoints: [ { port: http, path: /metrics, interval: 15s } ]
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata: { name: api-license-monitor, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: license-api } }
+  endpoints: [ { port: http, path: /metrics, interval: 15s } ]
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata: { name: api-cas-monitor, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: cas-api } }
+  endpoints: [ { port: http, path: /metrics, interval: 15s } ]
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -11,3 +39,4 @@ metadata: { name: cdn-monitor, namespace: ott-platform }
 spec:
   selector: { matchLabels: { app: cdn-edge } }
   endpoints: [ { port: http, path: /metrics, interval: 10s } ]
+

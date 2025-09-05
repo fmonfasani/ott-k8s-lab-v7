@@ -1,6 +1,6 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
-metadata: { name: ott-alerts, namespace: ott-platform }
+metadata: { name: ott-basics, namespace: ott-platform }
 spec:
   groups:
   - name: availability
@@ -9,3 +9,4 @@ spec:
       expr: up == 0
       for: 1m
       labels: { severity: critical }
+      annotations: { summary: "Service down", description: "Target sin scrape por 1m" }

@@ -10,3 +10,35 @@ spec:
   selector: { matchLabels: { app: license-api } }
   rules:
   - to: [ { operation: { methods: ["POST"], paths: ["/license"] } } ]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata: { name: auth-api-policy, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: auth-api } }
+  rules:
+  - to: [ { operation: { methods: ["POST"], paths: ["/auth/*"] } } ]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata: { name: subscription-api-policy, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: subscription-api } }
+  rules:
+  - to: [ { operation: { methods: ["GET"], paths: ["/subscription/*"] } } ]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata: { name: catalog-api-policy, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: catalog-api } }
+  rules:
+  - to: [ { operation: { methods: ["GET"], paths: ["/catalog/*"] } } ]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata: { name: cas-api-policy, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: cas-api } }
+  rules:
+  - to: [ { operation: { methods: ["POST"], paths: ["/cas/*"] } } ]

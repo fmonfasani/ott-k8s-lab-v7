@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: cdn-nginx-config, namespace: ott-platform }
+data:
+  default.conf: |
+    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=video_cache:50m max_size=1g inactive=10m use_temp_path=off;
+    server {
+      listen 80;
+      location /health { return 200 "ok\n"; add_header Content-Type text/plain; }
+      location ~* \.(m3u8|mpd)$ {
+        proxy_pass http://vlc-streaming-service.ott-platform.svc.cluster.local;
+        proxy_cache video_cache; proxy_cache_valid 200 10s;
+        add_header X-Cache-Status $upstream_cache_status;
+        add_header Access-Control-Allow-Origin *;
+      }
+      location ~* \.(ts|m4s|mp4)$ {
+        proxy_pass http://vlc-streaming-service.ott-platform.svc.cluster.local;
+        proxy_cache video_cache; proxy_cache_valid 200 60s;
+        add_header X-Cache-Status $upstream_cache_status;
+        add_header Access-Control-Allow-Origin *;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: cdn-edge, namespace: ott-platform, labels: { app: cdn-edge } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: cdn-edge } }
+  template:
+    metadata: { labels: { app: cdn-edge } }
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports: [ { containerPort: 80 } ]
+        volumeMounts:
+        - { name: nginx-config, mountPath: /etc/nginx/conf.d }
+        - { name: cache, mountPath: /var/cache/nginx }
+      volumes:
+      - { name: nginx-config, configMap: { name: cdn-nginx-config } }
+      - { name: cache, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: cdn-edge-service, namespace: ott-platform }
+spec:
+  selector: { app: cdn-edge }
+  ports: [ { name: http, port: 80, targetPort: 80 } ]

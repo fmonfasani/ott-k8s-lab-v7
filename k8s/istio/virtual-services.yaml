@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata: { name: api-routes, namespace: ott-platform }
+spec:
+  hosts: ["*"]
+  gateways: ["ott-gateway"]
+  http:
+  - match: [ { uri: { prefix: "/auth" } } ]
+    route: [ { destination: { host: auth-api-service, port: { number: 80 } } } ]
+  - match: [ { uri: { prefix: "/catalog" } } ]
+    route: [ { destination: { host: catalog-api-service, port: { number: 80 } } } ]
+  - match: [ { uri: { prefix: "/cdn" } } ]
+    route: [ { destination: { host: cdn-edge-service, port: { number: 80 } } } ]

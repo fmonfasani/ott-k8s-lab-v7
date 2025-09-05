@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: catalog-api-deployment, namespace: ott-platform, labels: { app: catalog-api } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: catalog-api } }
+  template:
+    metadata: { labels: { app: catalog-api } }
+    spec:
+      containers:
+      - name: catalog
+        image: python:3.11-slim
+        command: ["python","/app/app.py"]
+        ports: [ { containerPort: 5002 } ]
+        volumeMounts: [ { name: code, mountPath: /app } ]
+      volumes: [ { name: code, configMap: { name: catalog-api-code } } ]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: catalog-api-service, namespace: ott-platform }
+spec:
+  selector: { app: catalog-api }
+  ports: [ { name: http, port: 80, targetPort: 5002 } ]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: catalog-api-code, namespace: ott-platform }
+data:
+  app.py: |
+    from flask import Flask, jsonify
+    app=Flask(__name__)
+    CDN="http://cdn-edge-service.ott-platform.svc.cluster.local"
+    LICENSE="http://license-api-service.ott-platform.svc.cluster.local/license"
+    @app.get("/health")
+    def h(): return ("ok",200)
+    @app.get("/catalog/<cid>")
+    def c(cid):
+        return jsonify(contentId=cid, manifestUrl=f"{CDN}/media/demo/master.m3u8", licenseServerUrl=LICENSE)
+    if __name__=="__main__": app.run(host="0.0.0.0", port=5002)

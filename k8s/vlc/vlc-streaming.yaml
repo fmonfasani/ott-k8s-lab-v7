@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: vlc-streaming-deployment, namespace: ott-platform, labels: { app: vlc-streaming } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: vlc-streaming } }
+  template:
+    metadata: { labels: { app: vlc-streaming } }
+    spec:
+      containers:
+      - name: vlc
+        image: linuxserver/vlc
+        ports: [ { containerPort: 80 } ]
+        command: ["/bin/bash","-c"]
+        args:
+          - >-
+            cvlc -vvv /video/mi-video.mp4 --sout '#transcode{vcodec=h264,acodec=mp4a,vb=1000,ab=128}:
+            std{access=http,mux=ts,dst=:80/media/demo/master.m3u8}' --no-sout-all --sout-keep
+        volumeMounts: [ { name: video-source, mountPath: /video } ]
+      volumes:
+      - name: video-source
+        hostPath:
+          path: /ABSOLUTE/PATH/TO/video-source   # <-- CAMBIAR a tu carpeta con un .mp4
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata: { name: vlc-streaming-service, namespace: ott-platform }
+spec:
+  selector: { app: vlc-streaming }
+  ports: [ { name: http, port: 80, targetPort: 80 } ]

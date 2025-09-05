@@ -21,6 +21,9 @@ spec:
           httpGet: { path: /health, port: 5000 }
           initialDelaySeconds: 15
           periodSeconds: 10
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "300m", memory: "512Mi" }
         volumeMounts: [ { name: code, mountPath: /app } ]
       volumes: [ { name: code, configMap: { name: auth-api-code } } ]
 ---

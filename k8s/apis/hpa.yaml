@@ -1,0 +1,17 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: auth-api-hpa, namespace: ott-platform }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: auth-api-deployment }
+  minReplicas: 1
+  maxReplicas: 4
+  metrics: [ { type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } } } ]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: license-api-hpa, namespace: ott-platform }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: license-api-deployment }
+  minReplicas: 1
+  maxReplicas: 4
+  metrics: [ { type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } } } ]

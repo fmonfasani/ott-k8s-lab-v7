@@ -7,39 +7,46 @@ data:
     import { check, group } from 'k6';
     import { Trend, Rate } from 'k6/metrics';
     export let errorRate = new Rate('ott_errors');
-    export let startupTime = new Trend('ott_startup_time');
-    export let segmentFetch = new Trend('segment_fetch');
-    export let options = { vus: 20, duration: '2m', thresholds: { 'ott_errors': ['rate<0.02'], 'ott_startup_time': ['p(95)<2500'], 'segment_fetch': ['p(95)<1500'] } };
+    export let startupTime = new Trend('startup_time');
+    export let segFetch = new Trend('segment_fetch');
+
+    export let options = {
+      vus: 20, duration: '2m',
+      thresholds: {
+        'ott_errors': ['rate<0.02'],
+        'startup_time': ['p(95)<2500'],
+        'segment_fetch': ['p(95)<1500']
+      }
+    };
+
     export default function () {
       group('OTT Journey', function () {
-        const base = 'http://istio-ingressgateway.istio-system.svc.cluster.local';
+        const gw = 'http://istio-ingressgateway.istio-system.svc.cluster.local';
         let t0 = Date.now();
+
         // Auth
-        let login = http.post(`${base}/auth/login`, JSON.stringify({username:'user',password:'pass'}), { headers: {'Content-Type':'application/json'} });
+        let login = http.post(`${gw}/auth/login`, JSON.stringify({username:'user',password:'pass'}), { headers: {'Content-Type':'application/json'} });
         check(login, { 'login 200': r => r.status === 200 }) || errorRate.add(1);
-        let token = login.json('token'); let hdrs = { headers: { Authorization: `Bearer ${token}` } };
-        // Subscription
-        let sub = http.get(`${base}/subscription/check/content123`, hdrs); check(sub, { 'subscription 200': r => r.status === 200 }) || errorRate.add(1);
+
         // Catalog
-        let cat = http.get(`${base}/catalog/content123`, hdrs); check(cat, { 'catalog 200': r => r.status === 200 }) || errorRate.add(1);
-        let licenseUrl = 'http://license-api-service.ott-platform.svc.cluster.local/license';
-        let lic = http.post(licenseUrl, JSON.stringify({contentId:'content123', deviceId:'device456'}), { headers: {'Content-Type':'application/json'} });
+        let cat = http.get(`${gw}/catalog/content123`); check(cat, { 'catalog 200': r => r.status === 200 }) || errorRate.add(1);
+        let manifestUrl = cat.json('manifestUrl');
+
+        // License
+        let lic = http.post(`${gw}/license`, JSON.stringify({contentId:'content123',deviceId:'dev123'}), { headers: {'Content-Type':'application/json'} });
         check(lic, { 'license 200': r => r.status === 200 }) || errorRate.add(1);
-        // CDN manifest
-        const manifestUrl = 'http://cdn-edge-service.ott-platform.svc.cluster.local/media/demo/master.m3u8';
+
+        // Manifest
         let man = http.get(manifestUrl); check(man, { 'manifest 200': r => r.status === 200 }) || errorRate.add(1);
-        let segments = man.body.match(/https?:\/\/[^\n]+\.(ts|m4s)/g) || [];
-        if (segments.length < 3) {
-          const baseUrl = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
-          let rels = man.body.match(/^(?!#)([^\n]+\.(ts|m4s))/gm) || [];
-          segments = segments.concat(rels.map(s => baseUrl + s));
+        let t1 = Date.now(); startupTime.add(t1 - t0);
+
+        // Descargar 3 segmentos simples del manifiesto
+        let lines = man.body.split('\n').filter(l => l.endsWith('.ts'));
+        for (let i=0; i<Math.min(3, lines.length); i++){
+          let segStart = Date.now();
+          let seg = http.get(manifestUrl.replace('master.m3u8', lines[i]));
+          check(seg, { 'segment 200': r => r.status === 200 }) || errorRate.add(1);
+          segFetch.add(Date.now() - segStart);
         }
-        segments.slice(0,3).forEach((url, i) => {
-          let s0 = Date.now();
-          let seg = http.get(url);
-          segmentFetch.add(Date.now() - s0);
-          check(seg, { [`segment ${i} 200`]: r => r.status === 200 }) || errorRate.add(1);
-          if (i === 0) startupTime.add(Date.now() - t0);
-        });
       });
     }

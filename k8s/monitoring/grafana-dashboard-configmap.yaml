@@ -6,7 +6,22 @@ metadata:
   labels: { grafana_dashboard: "1" }
 data:
   ott-dashboard.json: |
-    {"title":"OTT E2E - KPIs","panels":[
-      {"type":"stat","title":"Startup Time P95 (ms)","targets":[{"expr":"histogram_quantile(0.95, sum(rate(ott_startup_time_seconds_bucket[5m])) by (le))*1000"}]},
-      {"type":"stat","title":"CDN Cache Hit Ratio","targets":[{"expr":"avg(nginx_http_cache_hit_ratio)"}]}
-    ]}
+    {
+      "title": "OTT E2E - KPIs",
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Service Availability",
+          "targets": [
+            { "expr": "sum(up) by (service)" }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "CPU or HTTP Request Rate",
+          "targets": [
+            { "expr": "rate(process_cpu_seconds_total[5m]) or rate(http_requests_total[5m])" }
+          ]
+        }
+      ]
+    }

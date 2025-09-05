@@ -1,0 +1,23 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata: { name: auth-destination, namespace: ott-platform }
+spec:
+  host: auth-api-service
+  trafficPolicy:
+    loadBalancer: { simple: LEAST_CONN }
+    connectionPool:
+      tcp: { maxConnections: 10 }
+      http: { http1MaxPendingRequests: 10, maxRequestsPerConnection: 2 }
+    outlierDetection: { consecutive5xx: 3, interval: 30s, baseEjectionTime: 30s }
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata: { name: license-destination, namespace: ott-platform }
+spec:
+  host: license-api-service
+  trafficPolicy:
+    loadBalancer: { simple: ROUND_ROBIN }
+    connectionPool:
+      tcp: { maxConnections: 20 }
+      http: { http1MaxPendingRequests: 20, maxRequestsPerConnection: 5 }
+    outlierDetection: { consecutive5xx: 5, interval: 30s, baseEjectionTime: 30s }

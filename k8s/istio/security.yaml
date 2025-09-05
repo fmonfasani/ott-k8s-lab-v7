@@ -1,0 +1,12 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata: { name: default-mtls, namespace: ott-platform }
+spec: { mtls: { mode: STRICT } }
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata: { name: license-post-only, namespace: ott-platform }
+spec:
+  selector: { matchLabels: { app: license-api } }
+  rules:
+  - to: [ { operation: { methods: ["POST"], paths: ["/license"] } } ]

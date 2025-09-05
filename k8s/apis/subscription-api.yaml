@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: subscription-api-deployment, namespace: ott-platform, labels: { app: subscription-api } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: subscription-api } }
+  template:
+    metadata: { labels: { app: subscription-api } }
+    spec:
+      containers:
+      - name: subscription
+        image: python:3.11-slim
+        command: ["python","/app/app.py"]
+        ports: [ { containerPort: 5001 } ]
+        env: [ { name: JWT_SECRET, value: "super-secret-key" } ]
+        volumeMounts: [ { name: code, mountPath: /app } ]
+      volumes: [ { name: code, configMap: { name: subscription-api-code } } ]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: subscription-api-service, namespace: ott-platform }
+spec:
+  selector: { app: subscription-api }
+  ports: [ { name: http, port: 80, targetPort: 5001 } ]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: subscription-api-code, namespace: ott-platform }
+data:
+  app.py: |
+    from flask import Flask, request, jsonify
+    import jwt
+    app = Flask(__name__)
+    SECRET = "super-secret-key"
+    @app.get("/health")
+    def h(): return ("ok",200)
+    @app.get("/ready")
+    def r(): return ("ok",200)
+    @app.get("/subscription/check/<content_id>")
+    def check(content_id):
+        try:
+            token = request.headers.get("Authorization","").split(" ")[1]
+            jwt.decode(token, SECRET, algorithms=["HS256"])
+            return jsonify(entitled=(content_id!="blocked123"))
+        except Exception as e:
+            return jsonify(error="unauthorized", detail=str(e)), 401
+    if __name__=="__main__": app.run(host="0.0.0.0", port=5001)

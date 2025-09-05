@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: k6-test-scripts, namespace: ott-platform }
+data:
+  ott-load-test.js: |
+    import http from 'k6/http';
+    import { check, group } from 'k6';
+    import { Trend, Rate } from 'k6/metrics';
+    export let errorRate = new Rate('ott_errors');
+    export let startupTime = new Trend('ott_startup_time');
+    export let options = { vus: 20, duration: '2m', thresholds: { 'ott_errors': ['rate<0.02'], 'ott_startup_time': ['p(95)<2500'] } };
+    export default function () {
+      group('OTT Journey', function () {
+        const base = 'http://istio-ingressgateway.istio-system.svc.cluster.local';
+        let t0 = Date.now();
+        // Auth
+        let login = http.post(`${base}/auth/login`, JSON.stringify({username:'user',password:'pass'}), { headers: {'Content-Type':'application/json'} });
+        check(login, { 'login 200': r => r.status === 200 }) || errorRate.add(1);
+        let token = login.json('token'); let hdrs = { headers: { Authorization: `Bearer ${token}` } };
+        // Subscription
+        let sub = http.get(`${base}/subscription/check/content123`, hdrs); check(sub, { 'subscription 200': r => r.status === 200 }) || errorRate.add(1);
+        // Catalog
+        let cat = http.get(`${base}/catalog/content123`, hdrs); check(cat, { 'catalog 200': r => r.status === 200 }) || errorRate.add(1);
+        let licenseUrl = 'http://license-api-service.ott-platform.svc.cluster.local/license';
+        let lic = http.post(licenseUrl, JSON.stringify({contentId:'content123', deviceId:'device456'}), { headers: {'Content-Type':'application/json'} });
+        check(lic, { 'license 200': r => r.status === 200 }) || errorRate.add(1);
+        // CDN manifest
+        let man = http.get('http://cdn-edge-service.ott-platform.svc.cluster.local/media/demo/master.m3u8'); check(man, { 'manifest 200': r => r.status === 200 }) || errorRate.add(1);
+        let t1 = Date.now(); startupTime.add(t1 - t0);
+      });
+    }

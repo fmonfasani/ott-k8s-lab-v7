@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata: { name: ott-load-test, namespace: ott-platform }
+spec:
+  template:
+    spec:
+      containers:
+      - name: k6
+        image: grafana/k6:latest
+        command: ["k6","run","/scripts/ott-load-test.js"]
+        volumeMounts: [ { name: scripts, mountPath: /scripts } ]
+      restartPolicy: Never
+      volumes: [ { name: scripts, configMap: { name: k6-test-scripts } } ]
+  backoffLimit: 0

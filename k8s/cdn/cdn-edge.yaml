@@ -11,13 +11,13 @@ data:
         proxy_pass http://hls-transcoder-svc.ott-platform.svc.cluster.local;
         proxy_cache video_cache; proxy_cache_valid 200 10s;
         add_header X-Cache-Status $upstream_cache_status;
-        add_header Access-Control-Allow-Origin *;
+        add_header Access-Control-Allow-Origin https://ott.example.com;
       }
       location ~* \.(ts|m4s|mp4)$ {
         proxy_pass http://hls-transcoder-svc.ott-platform.svc.cluster.local;
         proxy_cache video_cache; proxy_cache_valid 200 60s;
         add_header X-Cache-Status $upstream_cache_status;
-        add_header Access-Control-Allow-Origin *;
+        add_header Access-Control-Allow-Origin https://ott.example.com;
       }
     }
 ---

@@ -13,7 +13,7 @@ spec:
         command: ["/bin/sh", "-c"]
         args: ["pip install flask pyjwt prometheus_flask_exporter && python /app/app.py"]
         ports: [ { containerPort: 5001 } ]
-        env: [ { name: JWT_SECRET, value: "super-secret-key" } ]
+        envFrom: [ { secretRef: { name: jwt-secret } } ]
         readinessProbe:
           httpGet: { path: /health, port: 5001 }
           initialDelaySeconds: 5
@@ -41,10 +41,11 @@ metadata: { name: subscription-api-code, namespace: ott-platform }
 data:
   app.py: |
     from flask import Flask, request, jsonify
-    import jwt
+    import jwt, os
     from prometheus_flask_exporter import PrometheusMetrics
     app = Flask(__name__)
-    SECRET = "super-secret-key"; metrics = PrometheusMetrics(app)
+    SECRET = os.environ.get("JWT_SECRET")
+    metrics = PrometheusMetrics(app)
     @app.get("/health")
     def h(): return ("ok",200)
     @app.get("/ready")

@@ -9,9 +9,7 @@ spec:
     spec:
       containers:
       - name: subscription
-        image: python:3.11-slim
-        command: ["/bin/sh", "-c"]
-        args: ["pip install flask pyjwt prometheus_flask_exporter && python /app/app.py"]
+        image: ghcr.io/example/subscription-api:latest
         ports: [ { containerPort: 5001 } ]
         env: [ { name: JWT_SECRET, value: "super-secret-key" } ]
         readinessProbe:
@@ -25,8 +23,6 @@ spec:
         resources:
           requests: { cpu: "100m", memory: "128Mi" }
           limits:   { cpu: "300m", memory: "512Mi" }
-        volumeMounts: [ { name: code, mountPath: /app } ]
-      volumes: [ { name: code, configMap: { name: subscription-api-code } } ]
 ---
 apiVersion: v1
 kind: Service
@@ -34,27 +30,3 @@ metadata: { name: subscription-api-service, namespace: ott-platform }
 spec:
   selector: { app: subscription-api }
   ports: [ { name: http, port: 80, targetPort: 5001 } ]
----
-apiVersion: v1
-kind: ConfigMap
-metadata: { name: subscription-api-code, namespace: ott-platform }
-data:
-  app.py: |
-    from flask import Flask, request, jsonify
-    import jwt
-    from prometheus_flask_exporter import PrometheusMetrics
-    app = Flask(__name__)
-    SECRET = "super-secret-key"; metrics = PrometheusMetrics(app)
-    @app.get("/health")
-    def h(): return ("ok",200)
-    @app.get("/ready")
-    def r(): return ("ok",200)
-    @app.get("/subscription/check/<content_id>")
-    def check(content_id):
-        try:
-            token = request.headers.get("Authorization","").split(" ")[1]
-            jwt.decode(token, SECRET, algorithms=["HS256"])
-            return jsonify(entitled=(content_id!="blocked123"))
-        except Exception as e:
-            return jsonify(error="unauthorized", detail=str(e)), 401
-    if __name__=="__main__": app.run(host="0.0.0.0", port=5001)

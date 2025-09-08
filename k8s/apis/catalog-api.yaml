@@ -9,9 +9,7 @@ spec:
     spec:
       containers:
       - name: catalog
-        image: python:3.11-slim
-        command: ["/bin/sh", "-c"]
-        args: ["pip install flask pyjwt prometheus_flask_exporter && python /app/app.py"]
+        image: ghcr.io/example/catalog-api:latest
         ports: [ { containerPort: 5002 } ]
         readinessProbe:
           httpGet: { path: /health, port: 5002 }
@@ -24,8 +22,6 @@ spec:
         resources:
           requests: { cpu: "100m", memory: "128Mi" }
           limits:   { cpu: "300m", memory: "512Mi" }
-        volumeMounts: [ { name: code, mountPath: /app } ]
-      volumes: [ { name: code, configMap: { name: catalog-api-code } } ]
 ---
 apiVersion: v1
 kind: Service
@@ -33,20 +29,3 @@ metadata: { name: catalog-api-service, namespace: ott-platform }
 spec:
   selector: { app: catalog-api }
   ports: [ { name: http, port: 80, targetPort: 5002 } ]
----
-apiVersion: v1
-kind: ConfigMap
-metadata: { name: catalog-api-code, namespace: ott-platform }
-data:
-  app.py: |
-    from flask import Flask, jsonify
-    from prometheus_flask_exporter import PrometheusMetrics
-    app=Flask(__name__); metrics = PrometheusMetrics(app)
-    CDN="http://cdn-edge-service.ott-platform.svc.cluster.local"
-    LICENSE="http://license-api-service.ott-platform.svc.cluster.local/license"
-    @app.get("/health")
-    def h(): return ("ok",200)
-    @app.get("/catalog/<cid>")
-    def c(cid):
-        return jsonify(contentId=cid, manifestUrl=f"{CDN}/media/demo/master.m3u8", licenseServerUrl=LICENSE)
-    if __name__=="__main__": app.run(host="0.0.0.0", port=5002)

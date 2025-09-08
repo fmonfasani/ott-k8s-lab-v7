@@ -9,9 +9,7 @@ spec:
     spec:
       containers:
       - name: cas
-        image: python:3.11-slim
-        command: ["/bin/sh", "-c"]
-        args: ["pip install flask pyjwt prometheus_flask_exporter && python /app/app.py"]
+        image: ghcr.io/example/cas-api:latest
         ports: [ { containerPort: 5004 } ]
         readinessProbe:
           httpGet: { path: /health, port: 5004 }
@@ -24,8 +22,6 @@ spec:
         resources:
           requests: { cpu: "100m", memory: "128Mi" }
           limits:   { cpu: "300m", memory: "512Mi" }
-        volumeMounts: [ { name: code, mountPath: /app } ]
-      volumes: [ { name: code, configMap: { name: cas-api-code } } ]
 ---
 apiVersion: v1
 kind: Service
@@ -33,21 +29,3 @@ metadata: { name: cas-api-service, namespace: ott-platform }
 spec:
   selector: { app: cas-api }
   ports: [ { name: http, port: 80, targetPort: 5004 } ]
----
-apiVersion: v1
-kind: ConfigMap
-metadata: { name: cas-api-code, namespace: ott-platform }
-data:
-  app.py: |
-    from flask import Flask, request, jsonify
-    from prometheus_flask_exporter import PrometheusMetrics
-    app = Flask(__name__); metrics = PrometheusMetrics(app)
-    @app.get("/health")
-    def h(): return ("ok",200)
-    @app.get("/ready")
-    def r(): return ("ok",200)
-    @app.post("/cas/authorize")
-    def authorize():
-      b = request.get_json(force=True) or {}
-      return jsonify(allowed=b.get("tier") in ("premium","gold"))
-    if __name__=="__main__": app.run(host="0.0.0.0", port=5004)

@@ -7,8 +7,14 @@ spec:
   project: default
   source:
     repoURL: https://github.com/CodelyTV/ott-k8s-lab-v7.git
-    targetRevision: HEAD
+    targetRevision: main
     path: k8s/
   destination:
     server: https://kubernetes.default.svc
     namespace: ott-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

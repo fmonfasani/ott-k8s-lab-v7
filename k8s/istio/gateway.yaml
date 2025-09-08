@@ -3,4 +3,9 @@ kind: Gateway
 metadata: { name: ott-gateway, namespace: ott-platform }
 spec:
   selector: { istio: ingressgateway }
-  servers: [ { port: { number: 80, name: http, protocol: HTTP }, hosts: ["*"] } ]
+  servers:
+  - port: { number: 80, name: http, protocol: HTTP }
+    hosts: ["ott.example.com"]
+  - port: { number: 443, name: https, protocol: HTTPS }
+    hosts: ["ott.example.com"]
+    tls: { mode: SIMPLE, credentialName: ott-gateway-cert }

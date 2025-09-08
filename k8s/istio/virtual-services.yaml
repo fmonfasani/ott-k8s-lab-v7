@@ -2,7 +2,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata: { name: api-routes, namespace: ott-platform }
 spec:
-  hosts: ["*"]
+  hosts: ["ott.example.com"]
   gateways: ["ott-gateway"]
   http:
   - match: [{ uri: { prefix: "/auth" } }]

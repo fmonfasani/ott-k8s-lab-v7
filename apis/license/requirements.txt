@@ -1,0 +1,3 @@
+flask
+pyjwt
+prometheus_flask_exporter

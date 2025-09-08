@@ -12,6 +12,8 @@ data:
       const url='http://cdn-edge-service.ott-platform.svc.cluster.local/media/demo/master.m3u8';
       if(Hls.isSupported()){const h=new Hls();h.loadSource(url);h.attachMedia(v);}else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;}
     </script></body></html>
+  health: |
+    ok
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,6 +28,9 @@ spec:
       - name: player
         image: nginx:1.25-alpine
         ports: [ { containerPort: 80 } ]
+        resources: { requests: { cpu: "50m", memory: "64Mi" }, limits: { cpu: "100m", memory: "128Mi" } }
+        readinessProbe: { httpGet: { path: /health, port: 80 }, initialDelaySeconds: 5, periodSeconds: 10 }
+        livenessProbe: { httpGet: { path: /health, port: 80 }, initialDelaySeconds: 5, periodSeconds: 10 }
         volumeMounts: [ { name: html, mountPath: /usr/share/nginx/html } ]
       volumes: [ { name: html, configMap: { name: player-config } } ]
 ---

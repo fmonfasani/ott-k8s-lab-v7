@@ -1,3 +1,27 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: video-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /ABSOLUTE/PATH/TO/video-source # TODO: usuario lo ajusta
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: video-pvc
+  namespace: ott-platform
+spec:
+  accessModes: [ReadOnlyMany]
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: video-pv
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: hls-transcoder, namespace: ott-platform, labels: { app: hls-transcoder } }
@@ -11,7 +35,7 @@ spec:
       - name: hls
         emptyDir: {}
       - name: video-src
-        hostPath: { path: /ABSOLUTE/PATH/TO/video-source, type: Directory }  # TODO: usuario lo ajusta
+        persistentVolumeClaim: { claimName: video-pvc }
       containers:
       - name: ffmpeg
         image: jrottenberg/ffmpeg:6.0-alpine
@@ -30,6 +54,7 @@ spec:
         ports: [ { containerPort: 80 } ]
         volumeMounts:
         - { name: hls, mountPath: /usr/share/nginx/html/media/demo }
+        - { name: video-src, mountPath: /video }
 ---
 apiVersion: v1
 kind: Service
